@@ -11,13 +11,12 @@ import (
 	"github.com/Northern-Lights/yara-parser/grammar"
 )
 
-// TODO: Drop all rules into one YARA File
-// TODO: Nice Logging
 // TODO: short and long flags
+// TODO: Nice Logging
+// TODO: Option for merging all rules into one YARA File
 var (
 	stripMeta bool
 	stripTags bool
-	encode    string
 
 	recursive bool
 	strict    bool
@@ -29,11 +28,10 @@ var (
 func main() {
 	flag.BoolVar(&stripMeta, "stripMeta", false, "Strip metadata from yara rules")
 	flag.BoolVar(&stripTags, "stripTags", false, "Strip Tags from yara rules")
-	flag.StringVar(&encode, "encode", "", "Password for encoding yara rules (name, tags) ")
-	flag.BoolVar(&recursive, "recursive", true, "Recursively search for yara rules")
-	flag.BoolVar(&strict, "strict", false, "Strict mode: exit with error if any rule is invalid")
-	flag.BoolVar(&debug, "debug", false, "Enable debug mode")
+	flag.BoolVar(&recursive, "recursive", true, "Recursively scan yara rules")
+	flag.BoolVar(&strict, "strict", false, "Strict mode: exit with error if a rule is invalid")
 	flag.StringVar(&output, "output", "", "Output directory")
+	flag.BoolVar(&debug, "debug", false, "Enable debug mode")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -48,10 +46,10 @@ func main() {
 		}
 
 		if recursive {
-			ScanFiles(scanDirs[dir], output, strict, encode, stripMeta, stripTags)
+			ScanFiles(scanDirs[dir], output, strict, stripMeta, stripTags)
 		} else {
 			baseDir := filepath.Dir(scanDirs[dir])
-			ScanFile(baseDir, scanDirs[dir], output, strict, encode, stripMeta, stripTags)
+			ScanFile(baseDir, scanDirs[dir], output, strict, stripMeta, stripTags)
 		}
 	}
 }
@@ -70,13 +68,7 @@ func checkUsage(nargs int) {
 	}
 }
 
-func printDebug(msg string) {
-	if debug {
-		fmt.Printf("[DEBUG]: %s\n", msg)
-	}
-}
-
-func ScanFile(baseDir string, file string, outputDir string, strict bool, encode string, stripMeta bool, stripTags bool) error {
+func ScanFile(baseDir string, file string, outputDir string, strict bool, stripMeta bool, stripTags bool) error {
 	relativePath := strings.Replace(file, baseDir, "", 1)
 	newPath := filepath.Join(outputDir, relativePath)
 	newDir := filepath.Dir(newPath)
@@ -113,11 +105,6 @@ func ScanFile(baseDir string, file string, outputDir string, strict bool, encode
 		Strip(&ruleset, stripMeta, stripTags)
 	}
 
-	// TODO: Optional - encrypt name & tags
-	if encode != "" {
-		ObfuscateInformation(&ruleset, encode)
-	}
-
 	// Serialize Yara Files
 	serialized, err := ruleset.Serialize()
 	if err != nil {
@@ -132,7 +119,7 @@ func ScanFile(baseDir string, file string, outputDir string, strict bool, encode
 	return nil
 }
 
-func ScanFiles(baseDir string, outputDir string, strict bool, encode string, stripMeta bool, stripTags bool) {
+func ScanFiles(baseDir string, outputDir string, strict bool, stripMeta bool, stripTags bool) {
 	filepath.Walk(baseDir, func(pathEntry string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -142,7 +129,7 @@ func ScanFiles(baseDir string, outputDir string, strict bool, encode string, str
 			return nil
 		}
 
-		return ScanFile(baseDir, pathEntry, outputDir, strict, encode, stripMeta, stripTags)
+		return ScanFile(baseDir, pathEntry, outputDir, strict, stripMeta, stripTags)
 	})
 }
 

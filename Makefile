@@ -2,10 +2,13 @@ build:
 	go build -o yara_cleaner .
 
 clear:
-	rm -f yara_cleaner; rm -rf output
+	rm -f yara_cleaner; rm -rf io/cleaned/
 
 run:
-	./yara_cleaner -encode mypassword123456 -stripMeta -stripTags -recursive -output  output/ data/
+	./yara_cleaner -output io/cleaned -stripMeta -stripTags -recursive io/raw/
+
+test:
+	./yara_cleaner -output io/cleaned -stripMeta -stripTags -recursive io/test/
 
 scan:
-	yara output/crypto/crypto_signatures.yar output/crypto/crypto_signatures.yar > scan.txt
+	yara outputDir/crypto/crypto_signatures.yar outputDir/crypto/crypto_signatures.yar > scan.txt
